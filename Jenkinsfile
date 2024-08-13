@@ -7,34 +7,70 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+        stage("Initial cleanup") {
             steps {
-                // Checkout code from the repository
-                checkout scm
+                dir("${WORKSPACE}") {
+                    deleteDir()
+                }
+            }
+        }
+
+        stage('SCM Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/melkamu372/tooling-containerization.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    def branchName = env.BRANCH_NAME
-                    def imageTag = branchName == 'master' ? 'latest' : "${branchName}-latest"
-
-                    echo "Building Docker image with tag ${imageTag}"
-                    sh "docker build -t ${DOCKER_IMAGE_NAME}:${imageTag} ."
+                    def branchName = env.BRANCH_NAME ?: 'main'
+                    def buildTag = "${branchName}-0.0.${env.BUILD_NUMBER}"
+                    def buildCommand = "docker build -t ${DOCKER_IMAGE_NAME}:${buildTag} ."
+                    if (isUnix()) {
+                        sh buildCommand
+                    } else {
+                        bat buildCommand
+                    }
                 }
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Login to Docker Hub') {
             steps {
                 script {
-                    def branchName = env.BRANCH_NAME
-                    def imageTag = branchName == 'master' ? 'latest' : "${branchName}-latest"
+                    if (isUnix()) {
+                        sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
+                    } else {
+                        bat "echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin"
+                    }
+                }
+            }
+        }
 
-                    echo "Pushing Docker image with tag ${imageTag}"
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                        sh "docker push ${DOCKER_IMAGE_NAME}:${imageTag}"
+        stage('Push Image') {
+            steps {
+                script {
+                    def branchName = env.BRANCH_NAME ?: 'main'
+                    def buildTag = "${branchName}-0.0.${env.BUILD_NUMBER}"
+                    def pushCommand = "docker push ${DOCKER_IMAGE_NAME}:${buildTag}"
+                    if (isUnix()) {
+                        sh pushCommand
+                    } else {
+                        bat pushCommand
+                    }
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true, cleanWhenUnstable: true, deleteDirs: true)
+                script {
+                    if (isUnix()) {
+                        sh 'docker logout'
+                    } else {
+                        bat 'docker logout'
                     }
                 }
             }
