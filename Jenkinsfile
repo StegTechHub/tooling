@@ -34,32 +34,17 @@ pipeline {
             }
         }
 
-        stage('Login to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                    script {
-                        echo "Attempting Docker login"
-                        bat '''
-                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
-                        if %ERRORLEVEL% NEQ 0 (
-                            echo Docker login failed
-                            exit /b 1
-                        )
-                        '''
-                    }
-                }
-            }
-        }
-
         stage('Push Image') {
             steps {
                 script {
                     def branchName = env.BRANCH_NAME ?: 'main'
                     def sanitizedBranchName = branchName.replaceAll('/', '-').toLowerCase()
                     def buildTag = "${sanitizedBranchName}-0.0.${env.BUILD_NUMBER}"
-                    def pushCommand = "docker push ${DOCKER_IMAGE_NAME}:${buildTag}"
+                    def imageNameWithTag = "${DOCKER_IMAGE_NAME}:${buildTag}"
                     
-                    bat pushCommand
+                    docker.withRegistry('https://registry.hub.docker.com', DOCKER_CREDENTIALS_ID) {
+                        docker.image(imageNameWithTag).push("${env.BUILD_NUMBER}")
+                    }
                 }
             }
         }
@@ -67,10 +52,6 @@ pipeline {
         stage('Cleanup') {
             steps {
                 cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true, cleanWhenUnstable: true, deleteDirs: true)
-                
-                script {
-                    bat 'docker logout'
-                }
             }
         }
     }
