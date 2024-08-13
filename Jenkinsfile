@@ -28,6 +28,7 @@ pipeline {
                     def sanitizedBranchName = branchName.replaceAll('/', '-').toLowerCase()
                     def buildTag = "${sanitizedBranchName}-0.0.${env.BUILD_NUMBER}"
                     def buildCommand = "docker build -t ${DOCKER_IMAGE_NAME}:${buildTag} ."
+                    
                     if (isUnix()) {
                         sh buildCommand
                     } else {
@@ -41,13 +42,10 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     script {
-                        def loginCommand = """
-                            echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
-                        """
                         if (isUnix()) {
-                            sh loginCommand
+                            sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
                         } else {
-                            bat loginCommand
+                            bat 'echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin'
                         }
                     }
                 }
@@ -61,6 +59,7 @@ pipeline {
                     def sanitizedBranchName = branchName.replaceAll('/', '-').toLowerCase()
                     def buildTag = "${sanitizedBranchName}-0.0.${env.BUILD_NUMBER}"
                     def pushCommand = "docker push ${DOCKER_IMAGE_NAME}:${buildTag}"
+                    
                     if (isUnix()) {
                         sh pushCommand
                     } else {
@@ -73,6 +72,7 @@ pipeline {
         stage('Cleanup') {
             steps {
                 cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true, cleanWhenUnstable: true, deleteDirs: true)
+                
                 script {
                     if (isUnix()) {
                         sh 'docker logout'
