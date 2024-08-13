@@ -25,7 +25,9 @@ pipeline {
             steps {
                 script {
                     def branchName = env.BRANCH_NAME ?: 'main'
-                    def buildTag = "${branchName}-0.0.${env.BUILD_NUMBER}"
+                    // Sanitize branch name for Docker tag
+                    def sanitizedBranchName = branchName.replaceAll('/', '-').toLowerCase()
+                    def buildTag = "${sanitizedBranchName}-0.0.${env.BUILD_NUMBER}"
                     def buildCommand = "docker build -t ${DOCKER_IMAGE_NAME}:${buildTag} ."
                     if (isUnix()) {
                         sh buildCommand
@@ -52,7 +54,9 @@ pipeline {
             steps {
                 script {
                     def branchName = env.BRANCH_NAME ?: 'main'
-                    def buildTag = "${branchName}-0.0.${env.BUILD_NUMBER}"
+                    // Sanitize branch name for Docker tag
+                    def sanitizedBranchName = branchName.replaceAll('/', '-').toLowerCase()
+                    def buildTag = "${sanitizedBranchName}-0.0.${env.BUILD_NUMBER}"
                     def pushCommand = "docker push ${DOCKER_IMAGE_NAME}:${buildTag}"
                     if (isUnix()) {
                         sh pushCommand
