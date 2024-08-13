@@ -25,7 +25,6 @@ pipeline {
             steps {
                 script {
                     def branchName = env.BRANCH_NAME ?: 'main'
-                    // Sanitize branch name for Docker tag
                     def sanitizedBranchName = branchName.replaceAll('/', '-').toLowerCase()
                     def buildTag = "${sanitizedBranchName}-0.0.${env.BUILD_NUMBER}"
                     def buildCommand = "docker build -t ${DOCKER_IMAGE_NAME}:${buildTag} ."
@@ -40,11 +39,14 @@ pipeline {
 
         stage('Login to Docker Hub') {
             steps {
-                script {
-                    if (isUnix()) {
-                        sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
-                    } else {
-                        bat "echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin"
+                withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        def loginCommand = "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
+                        if (isUnix()) {
+                            sh loginCommand
+                        } else {
+                            bat loginCommand
+                        }
                     }
                 }
             }
@@ -54,7 +56,6 @@ pipeline {
             steps {
                 script {
                     def branchName = env.BRANCH_NAME ?: 'main'
-                    // Sanitize branch name for Docker tag
                     def sanitizedBranchName = branchName.replaceAll('/', '-').toLowerCase()
                     def buildTag = "${sanitizedBranchName}-0.0.${env.BUILD_NUMBER}"
                     def pushCommand = "docker push ${DOCKER_IMAGE_NAME}:${buildTag}"
