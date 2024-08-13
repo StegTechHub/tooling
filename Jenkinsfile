@@ -44,9 +44,15 @@ pipeline {
                     script {
                         echo "Attempting Docker login"
                         if (isUnix()) {
-                            sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin || { echo "Docker login failed"; exit 1; }'
+                            sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
                         } else {
-                            bat 'echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin || { echo "Docker login failed"; exit 1; }'
+                            bat '''
+                            echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                            if %ERRORLEVEL% NEQ 0 (
+                                echo Docker login failed
+                                exit /b 1
+                            )
+                            '''
                         }
                     }
                 }
