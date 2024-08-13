@@ -29,11 +29,7 @@ pipeline {
                     def buildTag = "${sanitizedBranchName}-0.0.${env.BUILD_NUMBER}"
                     def buildCommand = "docker build -t ${DOCKER_IMAGE_NAME}:${buildTag} ."
                     
-                    if (isUnix()) {
-                        sh buildCommand
-                    } else {
-                        bat buildCommand
-                    }
+                    bat buildCommand
                 }
             }
         }
@@ -43,17 +39,13 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     script {
                         echo "Attempting Docker login"
-                        if (isUnix()) {
-                            sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
-                        } else {
-                            bat '''
-                            echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
-                            if %ERRORLEVEL% NEQ 0 (
-                                echo Docker login failed
-                                exit /b 1
-                            )
-                            '''
-                        }
+                        bat '''
+                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                        if %ERRORLEVEL% NEQ 0 (
+                            echo Docker login failed
+                            exit /b 1
+                        )
+                        '''
                     }
                 }
             }
@@ -67,11 +59,7 @@ pipeline {
                     def buildTag = "${sanitizedBranchName}-0.0.${env.BUILD_NUMBER}"
                     def pushCommand = "docker push ${DOCKER_IMAGE_NAME}:${buildTag}"
                     
-                    if (isUnix()) {
-                        sh pushCommand
-                    } else {
-                        bat pushCommand
-                    }
+                    bat pushCommand
                 }
             }
         }
@@ -81,11 +69,7 @@ pipeline {
                 cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true, cleanWhenUnstable: true, deleteDirs: true)
                 
                 script {
-                    if (isUnix()) {
-                        sh 'docker logout'
-                    } else {
-                        bat 'docker logout'
-                    }
+                    bat 'docker logout'
                 }
             }
         }
