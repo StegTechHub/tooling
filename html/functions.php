@@ -2,16 +2,16 @@
 session_start();
 
 // connect to database
-$db = mysqli_connect('127.0.0.1', 'admin', 'admin', 'tooling');
+$db = mysqli_connect('mysql-server2', 'Willie', 'Password123', 'tooling');
 
 // Check connection
-// if (mysqli_connect_errno()) {
-// echo "Failed to connect to MySQL: " . mysqli_connect_error();
-// exit();
-// }
-// else{
-// echo "connected";
-// }
+if (mysqli_connect_errno()) {
+echo "Failed to connect to MySQL: " . mysqli_connect_error();
+exit();
+}
+else{
+echo "connected";
+}
 
 // variable declaration
 $username = "";
